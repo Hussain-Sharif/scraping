@@ -1,0 +1,25 @@
+{
+  "name": "scraping-1",
+  "version": "1.0.0",
+  "description": "learning scraping",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "scraper.ts",
+  "scripts": {
+    "start": "tsx src/scraper.ts",
+    "dev":"tsx watch src/scraper.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.1",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2"
+  }
+}
