@@ -4,3 +4,5 @@ export interface Painting {
   link: string;
   image: string;
 }
+
+export type DeferredImageMap = Record<string, string>;

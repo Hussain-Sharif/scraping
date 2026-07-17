@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import {Painting}  from './types';
+import {DeferredImageMap, Painting}  from './types';
 import * as fs from 'fs'
 
 
@@ -36,20 +36,37 @@ function buildDeferredImageMap($:cheerio.CheerioAPI): Record<string, string> {
       // Regex extracton for image url
       const data = eachScriptEleContent?.match(/data:image\/[^']+/)?.[0] ?? ""
     
-      // Regex extracton for id, helps in mapping
-      const id_string = eachScriptEleContent?.match(/var\s+ii\s*=\s*\[([^\]]+)\]/)?.[1].replace("'","").replace("'","") ?? ""
 
-      map[id_string.trim()] = data.trim()
+      const setOfIds= eachScriptEleContent?.match(/var\s+ii\s*=\s*\[([^\]]+)\]/)?.[1] ?? ""
+
+      if(setOfIds.length===0){
+        return;
+      }
+
+      const allArrayOfIds=setOfIds.split(",");
+
+      for(let eachId of allArrayOfIds ){
+        // Regex extracton for id of `ii` array , helps in mapping
+
+        const id_string = eachId.replace("'","").replace("'","") ?? ""
+        if(id_string.length===0){
+          continue;
+        }
+        map[id_string.trim()] = data.trim()
+      }
+      
+
     }
   })
-  return map;
-
+  
   // -------------------------------------
   // Testing:
   // console.log("total: scriptTags:",scriptTags.length, $(scriptTags[0]).html() ?? "No script content found")
   // console.log("regex for url:", $(scriptTags[0]).html()?.match(/data:image\/[^']+/)?.[0] ?? "No URL found")  
+  // console.log("regex for id:", $(scriptTags[0]).html()?.match(/var\s+ii\s*=\s*\[([^\]]+)\]/) ?? "No URL found")
   // console.log("regex for id:", $(scriptTags[0]).html()?.match(/var\s+ii\s*=\s*\[([^\]]+)\]/)?.[1].replace("'","").replace("'","") ?? "No URL found")
 
+  return map;
 }
 
 
@@ -86,12 +103,11 @@ export function extractPaintings(path:string): Partial<Painting>[] {
   */
   const items = $('a').filter((_ , el)=>{ 
       const $eachAnchor = $(el);
+      const href = $eachAnchor.attr("href") ?? "";
       return $eachAnchor.find('img').length > 0 
       && $eachAnchor.find('div > div').length >= 2 
-      && ($eachAnchor.attr("href")?.startsWith("/search") ?? false) 
-      && ($eachAnchor.attr("href")?.includes("stick")!==undefined 
-      ? true 
-      :false);  
+      && href.startsWith("/search") 
+      && href.includes("stick")
   }) 
 
   console.log("total: Actual Anchor items:",items.length)
@@ -157,7 +173,7 @@ export function extractPaintings(path:string): Partial<Painting>[] {
     let resultObj:Partial<Painting>={};
 
     if( name && name.length>0) resultObj.name=name
-    if( extensions.length>0) resultObj.extensions=extensions
+    if( extensions[0].length>0) resultObj.extensions=extensions
     if( link && link.length>0) resultObj.link=link
     if( image && image.length>0) resultObj.image=image
 
