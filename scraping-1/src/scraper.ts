@@ -26,8 +26,8 @@ function buildDeferredImageMap($:cheerio.CheerioAPI): Record<string, string> {
     && scriptContent.includes('var ii') 
     && scriptContent.includes('_setImagesSrc');
   })
-  // Ofcourse we get more key-value pair than needed but definitely with real one's
 
+  // Ofcourse we get more key-value pair than needed but definitely with real one's
   scriptTags.each((i,el)=>{
     const eachScriptEleContent = $(el).html();
 
@@ -106,7 +106,7 @@ export function extractPaintings(path:string): Partial<Painting>[] {
       const href = $eachAnchor.attr("href") ?? "";
       return $eachAnchor.find('img').length > 0 
       && $eachAnchor.find('div > div').length >= 2 
-      && href.startsWith("/search") 
+      && (href.startsWith("/search") || (href.includes("/search") && href.startsWith(domain))) 
       && href.includes("stick")
   }) 
 
@@ -128,7 +128,6 @@ export function extractPaintings(path:string): Partial<Painting>[] {
       else might be "undefined"{Means "alt" attribute is not present in the image tag}
 
       if "undefined" try to get name from DIV-1 content  
-
       */
       const imageEle_Alt=$eachAnchor.find("img")?.attr("alt")
       name = (imageEle_Alt!==undefined 
@@ -151,8 +150,10 @@ export function extractPaintings(path:string): Partial<Painting>[] {
     For Every Anchor Element we might have "href" attribute 
     */
 
-    const link = $eachAnchor.attr("href")!==undefined 
-                ? domain + $eachAnchor.attr("href") 
+    const link = ($eachAnchor.attr("href")!==undefined) 
+                ? $eachAnchor.attr("href")?.startsWith(domain)
+                  ? $eachAnchor.attr("href")
+                  : domain + $eachAnchor.attr("href")
                 : ""
     
     /*
@@ -162,9 +163,9 @@ export function extractPaintings(path:string): Partial<Painting>[] {
     or we can also find it from the "script" elements which are mapped with "id" values and such type of images are reffered as lazy images or deferredd images.    
 
     */   
-    const image = $eachAnchor.find("img")?.attr("data-src") 
+    const image = $eachAnchor.find("img")?.attr("data-src")?.replaceAll("\\x3d","=") 
     ?? ($eachAnchor.find("img")?.attr("id") !==undefined 
-    ?  deferredImageMap[$eachAnchor.find("img").attr("id")??""]: $eachAnchor.find("img").attr("src") ?? "")
+    ?  deferredImageMap[$eachAnchor.find("img").attr("id")??""]?.replaceAll("\\x3d","=") : $eachAnchor.find("img").attr("src")?.replaceAll("\\x3d","=") ?? "")
   
     /*
     Here we are actually including the entities which has real value than 
@@ -186,7 +187,7 @@ export function extractPaintings(path:string): Partial<Painting>[] {
 
 export function scrapePaintingAndSaveToFile(inputPath: string, outputPath: string): void {
   
-  // ---> starting point.
+
   const finalJson=extractPaintings(inputPath)
 
   const finalOutput = {
@@ -201,5 +202,3 @@ export function scrapePaintingAndSaveToFile(inputPath: string, outputPath: strin
   });
 
 }
-
-scrapePaintingAndSaveToFile('/home/sharifdev/projects/my/scraping/scraping-1/fixtures/van-gogh-paintings.html', '/home/sharifdev/projects/my/scraping/scraping-1/json_outputs/van-gogh-paintings-extracted.json')
