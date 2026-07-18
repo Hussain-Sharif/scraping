@@ -1,7 +1,12 @@
-import { scrapePaintingAndSaveToFile } from "./scraper";
+import { scrapePaintingAndSaveToFile } from "./scraper.js";
+import path from 'path'
 
+const root = process.cwd()
 
-scrapePaintingAndSaveToFile('/home/sharifdev/projects/my/scraping/scraping-1/fixtures/van-gogh-paintings.html', '/home/sharifdev/projects/my/scraping/scraping-1/json_outputs/van-gogh-paintings-extracted.json')
-scrapePaintingAndSaveToFile('/home/sharifdev/projects/my/scraping/scraping-1/fixtures/pablo_picasso_paintings.html', '/home/sharifdev/projects/my/scraping/scraping-1/json_outputs/pablo_picasso_paintings-extracted.json')
-scrapePaintingAndSaveToFile('/home/sharifdev/projects/my/scraping/scraping-1/fixtures/monet_paintings_fr.html', '/home/sharifdev/projects/my/scraping/scraping-1/json_outputs/monet_paintings_fr-extracted.json')
-scrapePaintingAndSaveToFile('/home/sharifdev/projects/my/scraping/scraping-1/fixtures/power_cast.html', '/home/sharifdev/projects/my/scraping/scraping-1/json_outputs/power_cast-extracted.json')
+const fixtureFolder = path.join(root, "fixtures")
+const jsonOutputsFolder = path.join(root,"json_outputs")
+
+scrapePaintingAndSaveToFile(`${fixtureFolder}/van-gogh-paintings.html`, `${jsonOutputsFolder}/van-gogh-paintings-extracted.json`)
+scrapePaintingAndSaveToFile(`${fixtureFolder}/pablo_picasso_paintings.html`, `${jsonOutputsFolder}/pablo_picasso_paintings-extracted.json`)
+scrapePaintingAndSaveToFile(`${fixtureFolder}/monet_paintings_fr.html`, `${jsonOutputsFolder}/monet_paintings_fr-extracted.json`)
+scrapePaintingAndSaveToFile(`${fixtureFolder}/power_cast.html`, `${jsonOutputsFolder}/power_cast-extracted.json`)

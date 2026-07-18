@@ -1,7 +1,7 @@
 import {describe, it, expect} from '@jest/globals'
 
 import path from "path";
-import { extractPaintings } from "../src/scraper";
+import { extractPaintings } from "../src/scraper.js";
 
 const fixture = (filename: string) =>
   path.join(process.cwd(), "fixtures", filename);
