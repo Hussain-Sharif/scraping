@@ -1,10 +1,10 @@
 import * as cheerio from 'cheerio';
-import {DeferredImageMap, Painting}  from './types';
+import {DeferredImageMap, Painting}  from './types.js';
 import * as fs from 'fs'
 
 
 
-function buildDeferredImageMap($:cheerio.CheerioAPI): Record<string, string> {
+export function buildDeferredImageMap($:cheerio.CheerioAPI): Record<string, string> {
     // Find script tags which has base64 images 
     /*
     kay-Value pair => 
@@ -54,8 +54,6 @@ function buildDeferredImageMap($:cheerio.CheerioAPI): Record<string, string> {
         }
         map[id_string.trim()] = data.trim()
       }
-      
-
     }
   })
   
@@ -69,6 +67,52 @@ function buildDeferredImageMap($:cheerio.CheerioAPI): Record<string, string> {
   return map;
 }
 
+
+export const resolveImage=(
+  $eachAnchor: cheerio.Cheerio<any>,
+  deferredImageMap: DeferredImageMap
+): string =>{
+
+  const $image = $eachAnchor.find("img").first(); 
+
+   const dataSrc = $image.attr("data-src")?.replaceAll("\\x3d", "=");
+  if (dataSrc) return dataSrc;
+
+  const src = $image?.attr("src")?.replaceAll("\\x3d", "=") ?? "";
+  const id = $image?.attr("id") ?? "";
+  
+  const deferredImage = deferredImageMap[id]?.replaceAll("\\x3d", "=");
+  
+  const isPlaceholder = src.startsWith("data:image/gif");
+
+  return isPlaceholder && deferredImage ? deferredImage : src;
+}
+
+export const resolveLink=(
+  $eachAnchor:cheerio.Cheerio<any>,
+  domain:string
+):string =>{
+  const href = $eachAnchor.attr("href") 
+  return (href!==undefined) 
+          ? href?.startsWith(domain)
+            ? href
+            : domain + href
+          : ""
+}
+
+export const resolveName=(
+  $:any,
+$eachAnchor:cheerio.Cheerio<any>,
+  container_holds_divs:cheerio.Cheerio<any>
+) =>{
+    const imageEle_Alt=$eachAnchor.find("img")?.attr("alt")
+      return (imageEle_Alt!==undefined 
+             && imageEle_Alt.length>0 )
+              ? imageEle_Alt  
+              : $(container_holds_divs[0])?.text()?.trim()?.split("\n")
+              ?.map((each:string)=>each.trim()).join(" ") 
+              ?? "" 
+}
 
 export function extractPaintings(path:string): Partial<Painting>[] {
   
@@ -97,6 +141,8 @@ export function extractPaintings(path:string): Partial<Painting>[] {
   where Each Anchor Descendants with two Elements: 
   1 -> Image Element
   1 -> DIV Element
+  1 -> /search path in href which might have the domain name to it.
+  1 -> which will have `stick` query parameters
 
   And the Above 1 -> DIV Element has 2 -> DIV Elements as Descendants, 
   which has name and  year respectively.
@@ -105,7 +151,7 @@ export function extractPaintings(path:string): Partial<Painting>[] {
       const $eachAnchor = $(el);
       const href = $eachAnchor.attr("href") ?? "";
       return $eachAnchor.find('img').length > 0 
-      && $eachAnchor.find('div > div').length >= 2 
+      && $eachAnchor.find('div > div').length <= 2 
       && (href.startsWith("/search") || (href.includes("/search") && href.startsWith(domain))) 
       && href.includes("stick")
   }) 
@@ -129,19 +175,13 @@ export function extractPaintings(path:string): Partial<Painting>[] {
 
       if "undefined" try to get name from DIV-1 content  
       */
-      const imageEle_Alt=$eachAnchor.find("img")?.attr("alt")
-      name = (imageEle_Alt!==undefined 
-             && imageEle_Alt.length>0 )
-              ? imageEle_Alt  
-              : $(container_holds_divs[0])?.text()?.trim()?.split("\n")
-              ?.map(each=>each.trim()).join(" ") 
-              ?? "" 
+      name = resolveName($,$eachAnchor,container_holds_divs);
 
       /*
       Getting Extension(Year):
       Easily we can check DIV-2 content 
       */
-      year = $(container_holds_divs[1])?.text()?.trim()
+      year = container_holds_divs[1] ? ($(container_holds_divs[1])?.text()?.trim() ?? "") : ""
     }     
     const extensions = [year];
 
@@ -149,23 +189,15 @@ export function extractPaintings(path:string): Partial<Painting>[] {
     /*
     For Every Anchor Element we might have "href" attribute 
     */
+    const link = resolveLink($eachAnchor,domain)
+    
 
-    const link = ($eachAnchor.attr("href")!==undefined) 
-                ? $eachAnchor.attr("href")?.startsWith(domain)
-                  ? $eachAnchor.attr("href")
-                  : domain + $eachAnchor.attr("href")
-                : ""
-    
     /*
-    
     Getting image URL:
     We might have Image Element inside every Anchor Element using "data-src" in it we can find image urls,
     or we can also find it from the "script" elements which are mapped with "id" values and such type of images are reffered as lazy images or deferredd images.    
-
     */   
-    const image = $eachAnchor.find("img")?.attr("data-src")?.replaceAll("\\x3d","=") 
-    ?? ($eachAnchor.find("img")?.attr("id") !==undefined 
-    ?  deferredImageMap[$eachAnchor.find("img").attr("id")??""]?.replaceAll("\\x3d","=") : $eachAnchor.find("img").attr("src")?.replaceAll("\\x3d","=") ?? "")
+    const image = resolveImage($eachAnchor,deferredImageMap)
   
     /*
     Here we are actually including the entities which has real value than 
